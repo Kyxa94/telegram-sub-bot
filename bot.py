@@ -1,17 +1,19 @@
+python
 import logging
 import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
+# Настройка логирования для Railway
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 
-CHANNEL_USERNAME = "@zakon_koshel"
-CHANNEL_ID = -1003320212459
-
-ACCESS_LINK = "https://drive.google.com/uc?export=download&id=1aMm3UyJtWk2zGca1OFlegUlv_xMlNiAF"
+# Получаем переменные окружения
+CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME", "@zakon_koshel")
+CHANNEL_ID = int(os.getenv("CHANNEL_ID", "-1003320212459"))
+ACCESS_LINK = os.getenv("ACCESS_LINK", "https://drive.google.com/uc?export=download&id=1aMm3UyJtWk2zGca1OFlegUlv_xMlNiAF")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
@@ -52,18 +54,32 @@ async def check_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
-    except Exception:
+    except Exception as e:
+        logging.error(f"Ошибка проверки подписки: {e}")
         await query.edit_message_text("⚠ Ошибка. Попробуйте позже.")
 
 def main():
-    TOKEN = os.getenv("TOKEN")
-
+    # Получаем токен из переменных окружения Railway
+    TOKEN = os.getenv("BOT_TOKEN")
+    
+    if not TOKEN:
+        logging.error("❌ BOT_TOKEN не установлен!")
+        logging.error("Добавьте переменную BOT_TOKEN в настройках Railway")
+        return
+    
+    # Создаем приложение
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(check_subscription, pattern='check_sub'))
-
-    print("Bot started")
-    app.run_polling()
+    
+    logging.info("🤖 Бот запускается...")
+    logging.info(f"📢 Канал: {CHANNEL_USERNAME}")
+    
+    # Запускаем polling
+    app.run_polling(
+        drop_pending_updates=True,
+        allowed_updates=Update.ALL_TYPES
+    )
 
 if __name__ == "__main__":
     main()
