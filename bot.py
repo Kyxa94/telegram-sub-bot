@@ -11,11 +11,9 @@ logging.basicConfig(
 # Конфигурация
 CHANNEL_USERNAME = "@zakon_koshel"
 CHANNEL_ID = -1003320212459
-
-# ССЫЛКА ДЛЯ ДОСТУПА ПОСЛЕ ПОДПИСКИ (замените на свою)
 ACCESS_LINK = "https://drive.google.com/uc?export=download&id=1aMm3UyJtWk2zGca1OFlegUlv_xMlNiAF"
 
-# Команда /start - главное меню
+# Команда /start
 async def start(update: Update, context: CallbackContext) -> None:
     keyboard = [
         [InlineKeyboardButton("🔍 Проверить подписку", callback_data='check_sub')]
@@ -28,7 +26,7 @@ async def start(update: Update, context: CallbackContext) -> None:
         reply_markup=reply_markup
     )
 
-# Проверка подписки
+# Проверка подписки - НИКОГДА не завершается
 async def check_subscription(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     await query.answer()
@@ -36,22 +34,23 @@ async def check_subscription(update: Update, context: CallbackContext) -> None:
     user_id = query.from_user.id
     
     try:
-        # Проверяем подписку
         chat_member = await context.bot.get_chat_member(CHANNEL_ID, user_id)
         
         if chat_member.status in ['member', 'administrator', 'creator']:
-            # Подписан - даем только ссылку (без кнопки "Проверить снова")
+            # Подписан - даем ссылку + кнопку проверить снова
             keyboard = [
-                [InlineKeyboardButton("🔗 ДЕНЕЖНЫЙ ВОЗВРАТ—2026", url=ACCESS_LINK)]
+                [InlineKeyboardButton("🔗 ДЕНЕЖНЫЙ ВОЗВРАТ—2026", url=ACCESS_LINK)],
+                [InlineKeyboardButton("🔄 Проверить подписку снова", callback_data='check_sub')]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             
             await query.edit_message_text(
-                "✅ Вы подписаны! Вот ваш файл:",
+                "✅ Вы подписаны! Вот ваш файл:\n\n"
+                "Вы можете проверять подписку снова в любое время:",
                 reply_markup=reply_markup
             )
         else:
-            # Не подписан - просим подписаться
+            # Не подписан
             keyboard = [
                 [InlineKeyboardButton("📢 Подписаться на канал", url=f"https://t.me/{CHANNEL_USERNAME[1:]}")],
                 [InlineKeyboardButton("🔄 Проверить подписку", callback_data='check_sub')]
@@ -65,7 +64,7 @@ async def check_subscription(update: Update, context: CallbackContext) -> None:
             )
             
     except Exception as e:
-        # Ошибка - предлагаем повторить
+        # При ошибке - кнопка попробовать снова
         keyboard = [
             [InlineKeyboardButton("🔄 Попробовать снова", callback_data='check_sub')]
         ]
