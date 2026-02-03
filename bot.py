@@ -1,4 +1,5 @@
 import logging
+import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, CallbackContext
 
@@ -8,12 +9,11 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-# Конфигурация
-CHANNEL_USERNAME = "@zakon_koshel"
-CHANNEL_ID = -1003320212459
-ACCESS_LINK = "https://drive.google.com/uc?export=download&id=1aMm3UyJtWk2zGca1OFlegUlv_xMlNiAF"
+# Получаем конфигурацию из переменных окружения
+CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME", "@zakon_koshel")
+CHANNEL_ID = int(os.getenv("CHANNEL_ID", "-1003320212459"))
+ACCESS_LINK = os.getenv("ACCESS_LINK", "https://drive.google.com/uc?export=download&id=1aMm3UyJtWk2zGca1OFlegUlv_xMlNiAF")
 
-# Команда /start
 async def start(update: Update, context: CallbackContext) -> None:
     keyboard = [
         [InlineKeyboardButton("🔍 Проверить подписку", callback_data='check_sub')]
@@ -26,7 +26,6 @@ async def start(update: Update, context: CallbackContext) -> None:
         reply_markup=reply_markup
     )
 
-# Проверка подписки - НИКОГДА не завершается
 async def check_subscription(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     await query.answer()
@@ -37,7 +36,6 @@ async def check_subscription(update: Update, context: CallbackContext) -> None:
         chat_member = await context.bot.get_chat_member(CHANNEL_ID, user_id)
         
         if chat_member.status in ['member', 'administrator', 'creator']:
-            # Подписан - даем ссылку + кнопку проверить снова
             keyboard = [
                 [InlineKeyboardButton("🔗 ДЕНЕЖНЫЙ ВОЗВРАТ—2026", url=ACCESS_LINK)],
                 [InlineKeyboardButton("🔄 Проверить подписку снова", callback_data='check_sub')]
@@ -50,7 +48,6 @@ async def check_subscription(update: Update, context: CallbackContext) -> None:
                 reply_markup=reply_markup
             )
         else:
-            # Не подписан
             keyboard = [
                 [InlineKeyboardButton("📢 Подписаться на канал", url=f"https://t.me/{CHANNEL_USERNAME[1:]}")],
                 [InlineKeyboardButton("🔄 Проверить подписку", callback_data='check_sub')]
@@ -64,7 +61,7 @@ async def check_subscription(update: Update, context: CallbackContext) -> None:
             )
             
     except Exception as e:
-        # При ошибке - кнопка попробовать снова
+        logging.error(f"Ошибка проверки: {e}")
         keyboard = [
             [InlineKeyboardButton("🔄 Попробовать снова", callback_data='check_sub')]
         ]
@@ -75,17 +72,27 @@ async def check_subscription(update: Update, context: CallbackContext) -> None:
             reply_markup=reply_markup
         )
 
-# Основная функция
 def main() -> None:
-    TOKEN = "8385581401:AAE9n9TqxH0IF3JqIynqWi3lmMX1gDm8Mf8"
+    # Получаем токен из переменных окружения Railway
+    TOKEN = os.getenv("BOT_TOKEN")
     
-    application = Application.builder().token(TOKEN).build()
+    if not TOKEN:
+        logging.error("❌ ОШИБКА: BOT_TOKEN не найден в переменных окружения!")
+        logging.error("Добавьте BOT_TOKEN в настройках Railway")
+        return
     
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(check_subscription, pattern='check_sub'))
-    
-    print("Бот запущен!")
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    try:
+        application = Application.builder().token(TOKEN).build()
+        application.add_handler(CommandHandler("start", start))
+        application.add_handler(CallbackQueryHandler(check_subscription, pattern='check_sub'))
+        
+        logging.info("🤖 Бот запускается...")
+        application.run_polling(allowed_updates=Update.ALL_TYPES)
+        
+    except Exception as e:
+        logging.error(f"❌ Ошибка запуска бота: {e}")
+        if "InvalidToken" in str(e):
+            logging.error("⚠️ Токен недействителен! Получите новый у @BotFather")
 
 if __name__ == '__main__':
     main()
