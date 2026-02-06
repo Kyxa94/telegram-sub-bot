@@ -20,7 +20,7 @@ if not TOKEN:
 # Конфигурация
 CHANNEL_USERNAME = "@zakon_koshel"
 CHANNEL_ID = -1003320212459
-ACCESS_LINK = "https://drive.google.com/uc?export=download&id=1aMm3UyJtWk2zGca1OFlegUlv_xMlNiAF"
+ACCESS_LINK = "https://drive.google.com/uc?export=download&id=1MP8lLYRbeHVskh6gaC2KSiT5JhcEBGWj"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton("🔍 Проверить подписку", callback_data='check_sub')]]
